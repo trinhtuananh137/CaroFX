@@ -19,6 +19,8 @@ import javafx.scene.control.Button;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -38,19 +40,18 @@ public class CaroFX2 extends Application {
     public Pane chessBoard = new Pane();
     public Button btnNewGame = new Button("New game");
     public Button btnUndo = new Button("Undo");
+    public static Label lbTime = new Label();
+    public static Label lbTurn = new Label();
     public Integer seconds = 0;
     public Integer minutes = 0;
     public Integer hours = 0;
     public Timeline clock = null;
 
-    public static Label lbTime = new Label();
-
+    
+    // khoi tao cac thanh phan de dua vao scene
     public Parent createContent() {
         clock = new Timeline(new KeyFrame(Duration.ZERO, e -> {
-            updateTimer();
-            lbTime.setFont(new Font("TimeNewRoman", 20));
-            lbTime.setLayoutX(650);
-            lbTime.setLayoutY(90);
+            updateTimer();            
         }), new KeyFrame(Duration.seconds(1)));
         clock.setCycleCount(Animation.INDEFINITE);
         clock.play();
@@ -62,7 +63,16 @@ public class CaroFX2 extends Application {
 
         btnUndo.setLayoutX(650);
         btnUndo.setLayoutY(50);
-
+        
+        lbTurn.setFont(new Font("TimeNewRoman", 20));
+        lbTurn.setLayoutX(650);
+        lbTurn.setLayoutY(90);
+        lbTurn.setText("Turn X");
+        
+        lbTime.setFont(new Font("TimeNewRoman", 20));
+        lbTime.setLayoutX(650);
+        lbTime.setLayoutY(130);
+                
         btnNewGame.setOnAction(event -> {
             resetBoard();
             seconds = 0;
@@ -90,10 +100,11 @@ public class CaroFX2 extends Application {
         root.getChildren().add(btnNewGame);
         root.getChildren().add(btnUndo);
         root.getChildren().add(lbTime);
+        root.getChildren().add(lbTurn);
 
         return root;
     }
-
+    // ham tang thoi gian
     void updateTimer() {
         String _seconds;
         String _minutes;
@@ -140,6 +151,7 @@ public class CaroFX2 extends Application {
         public Rectangle border;
 
         public Tile() {
+            // tap cac o ban co
             border = new Rectangle(30, 30);
             border.setFill(Color.YELLOW);
             border.setStroke(Color.BLACK); // chon may cho vien hinh vuong
@@ -148,7 +160,7 @@ public class CaroFX2 extends Application {
 
             setAlignment(Pos.CENTER);
             getChildren().addAll(border, text);
-
+            //set su kien khi nhan vao o ban co
             setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
                 public void handle(MouseEvent event) {
@@ -165,24 +177,32 @@ public class CaroFX2 extends Application {
                         arrBoard[row][col] = 1;
                         drawX();
                         listUndo.add(board[col][row]);
+                        listUndo.get(listUndo.size() - 1).border.setFill(Color.WHITE);
+                        if(listUndo.size() > 1) listUndo.get(listUndo.size() - 2).border.setFill(Color.YELLOW);
                         if (checkWin(row, col) == 1) {
                             System.out.println("Nguoi choi 1 chien thang");
                             playable = false;
                             clock.pause();
                             playWinAnimation(comboWin1);
+                            showAlertWithHeaderText(playerFlag);
                         }
                         playerFlag = 2;
+                        lbTurn.setText("Turn O");
                     } else if (event.getButton() == MouseButton.PRIMARY && arrBoard[row][col] == 0 && playerFlag == 2) {
                         arrBoard[row][col] = 2;
                         drawO();
                         listUndo.add(board[col][row]);
+                        listUndo.get(listUndo.size() - 1).border.setFill(Color.WHITE);
+                        if(listUndo.size() > 1) listUndo.get(listUndo.size() - 2).border.setFill(Color.YELLOW);
                         if (checkWin(row, col) == 2) {
                             System.out.println("Nguoi choi 2 chien thang");
                             playable = false;
                             clock.pause();
                             playWinAnimation(comboWin2);
+                            showAlertWithHeaderText(playerFlag);
                         }
                         playerFlag = 1;
+                        lbTurn.setText("Turn X");
                     }
                 }
             });
@@ -333,13 +353,13 @@ public class CaroFX2 extends Application {
         }
         return 0;
     }
-
+    // Noi cac o tao dan den chien thang
     private void playWinAnimation(List<Tile> combo) {
         for (int i = 0; i < combo.size(); i++) {
-            combo.get(i).border.setFill(Color.WHITE);
+            combo.get(i).border.setFill(Color.LIGHTBLUE);
         }
     }
-
+    // Reset ban co ve ban dau
     public void resetBoard() {
         for (int i = 0; i < 20; i++) {
             for (int j = 0; j < 20; j++) {
@@ -350,18 +370,21 @@ public class CaroFX2 extends Application {
             }
         }
     }
-
+    // Undo nuoc di
     public void undoMove() {
         listUndo.remove(listUndo.size() - 1);
         if (playerFlag == 1) {
             playerFlag = 2;
+            lbTurn.setText("Turn O");
         } else if (playerFlag == 2) {
             playerFlag = 1;
+            lbTurn.setText("Turn X");
         }
         playable = true;
         repaintChessBoard();
+        
     }
-
+    //Ve lai ban co
     public void repaintChessBoard() {
         for (int i = 0; i < 20; i++) {
             for (int j = 0; j < 20; j++) {
@@ -372,7 +395,17 @@ public class CaroFX2 extends Application {
                 }
                 board[i][j].border.setFill(Color.YELLOW);
             }
+            listUndo.get(listUndo.size() - 1).border.setFill(Color.WHITE);
         }
+    }
+    
+    private void showAlertWithHeaderText(int flag) {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("GAME OVER");
+        alert.setHeaderText("CONGRATULATIONS !!!");
+        if (flag == 1) alert.setContentText("Player with X - chess is WINNER !");
+        else if (flag == 2) alert.setContentText("Player with O - chess is WINNER !");
+        alert.showAndWait();
     }
 
     public static void main(String[] args) {
